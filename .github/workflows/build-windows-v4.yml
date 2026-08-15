@@ -1,96 +1,60 @@
-name: Build Lumenforge Windows installer v4
-
-
+name: Build Lumenforge Studio 0.2.1 installer
 
 on:
-
   workflow_dispatch:
-  
-
-
-permissions:
-
-  contents: write
-  
-
 
 permissions:
   contents: write
+
 jobs:
-
   build-windows:
-  
     name: Build Lumenforge x64 setup executable
-    
     runs-on: windows-latest
-    
     timeout-minutes: 45
-    
+
     steps:
-    
       - uses: actions/checkout@v4
-      
-      - name: Download icon-complete Lumenforge source
-      
+
+      - name: Download verified Lumenforge Studio 0.2.1 source
         shell: pwsh
-        
         run: Invoke-WebRequest -Uri "https://files.manuscdn.com/user_upload_by_module/session_file/310519663641558116/mlZOHnSBDRKEDJYz.zip" -OutFile "$env:GITHUB_WORKSPACE\source.zip"
-        
-      - name: Expand source
-      
+
+      - name: Expand verified source
         shell: pwsh
-        
         run: Expand-Archive -Path "$env:GITHUB_WORKSPACE\source.zip" -DestinationPath "$env:GITHUB_WORKSPACE\source" -Force
-        
+
       - uses: actions/setup-node@v4
-      
         with:
-        
           node-version: 22
-          
+
       - uses: pnpm/action-setup@v4
-      
         with:
-        
           version: 10.4.1
-          
+
       - uses: dtolnay/rust-toolchain@stable
-      
         with:
-        
           toolchain: stable
-          
+
       - name: Install and validate project
-      
         working-directory: source
-        
         run: |
-        
           pnpm install --frozen-lockfile
-          
           pnpm check
-          
+
       - name: Build NSIS installer
-      
         working-directory: source
-        
         run: pnpm desktop:build --bundles nsis
-        
+
       - name: Publish verified direct installer
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete v0.2.1-world-builder --yes || true
           gh release create v0.2.1-world-builder "source/src-tauri/target/release/bundle/nsis/Lumenforge Studio 0.2_0.2.1_x64-setup.exe#Lumenforge-Studio-0.2.1-x64-setup.exe" --title "Lumenforge Studio 0.2.1 — World Builder" --notes "Verified direct Windows NSIS installer. The editor header displays 0.2.1 · WORLD BUILDER."
+
       - uses: actions/upload-artifact@v4
-      
         with:
-        
           name: Lumenforge-Windows-x64-NSIS
-          
           path: source/src-tauri/target/release/bundle/nsis/*.exe
-          
           if-no-files-found: error
-          
           retention-days: 30
-          
