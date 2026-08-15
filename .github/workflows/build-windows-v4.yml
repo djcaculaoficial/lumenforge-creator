@@ -14,6 +14,8 @@ permissions:
   
 
 
+permissions:
+  contents: write
 jobs:
 
   build-windows:
@@ -74,6 +76,12 @@ jobs:
         
         run: pnpm desktop:build --bundles nsis
         
+      - name: Publish verified direct installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete v0.2.1-world-builder --yes || true
+          gh release create v0.2.1-world-builder "source/src-tauri/target/release/bundle/nsis/Lumenforge Studio 0.2_0.2.1_x64-setup.exe#Lumenforge-Studio-0.2.1-x64-setup.exe" --title "Lumenforge Studio 0.2.1 — World Builder" --notes "Verified direct Windows NSIS installer. The editor header displays 0.2.1 · WORLD BUILDER."
       - uses: actions/upload-artifact@v4
       
         with:
@@ -86,40 +94,3 @@ jobs:
           
           retention-days: 30
           
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
