@@ -41,6 +41,21 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm check
 
+      - name: Assert expanded editor bundle
+        working-directory: source
+        shell: pwsh
+        run: |
+          pnpm build
+          $bundleFiles = Get-ChildItem "dist/public/assets/*.js"
+          $requiredMarkers = @("WORLD BUILDER", "Items", "Cutscene", "Logic")
+          foreach ($marker in $requiredMarkers) {
+            if (-not (Select-String -Path $bundleFiles.FullName -Pattern $marker -Quiet)) {
+              throw "Refusing release: compiled frontend is missing expanded-editor marker '$marker'."
+            }
+          }
+
+          Write-Host "Expanded editor markers verified in compiled frontend."
+
       - name: Build NSIS installer
         working-directory: source
         run: pnpm desktop:build --bundles nsis
@@ -49,8 +64,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.2.1-world-builder --yes || true
-          gh release create v0.2.1-world-builder "source/src-tauri/target/release/bundle/nsis/Lumenforge Studio 0.2_0.2.1_x64-setup.exe#Lumenforge-Studio-0.2.1-x64-setup.exe" --title "Lumenforge Studio 0.2.1 — World Builder" --notes "Verified direct Windows NSIS installer. The editor header displays 0.2.1 · WORLD BUILDER."
+          Copy-Item "source/src-tauri/target/release/lumenforge.exe" "source/src-tauri/target/release/Lumenforge-Studio-0.2.1-World-Builder.exe"
+          gh release delete v0.2.2-world-builder --yes || true
+          gh release create v0.2.2-world-builder "source/src-tauri/target/release/bundle/nsis/Lumenforge Studio 0.2_0.2.1_x64-setup.exe#Lumenforge-Studio-0.2.1-x64-setup.exe" "source/src-tauri/target/release/Lumenforge-Studio-0.2.1-World-Builder.exe" --title "Lumenforge Studio 0.2.1 — World Builder (verified bundle)" --notes "The CI build asserts that the packaged frontend contains WORLD BUILDER, Items, Cutscene, and Logic before release. Use the portable executable to bypass shortcut or installer ambiguity."
 
       - uses: actions/upload-artifact@v4
         with:
